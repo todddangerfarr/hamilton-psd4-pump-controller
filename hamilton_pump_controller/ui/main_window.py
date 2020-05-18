@@ -6,8 +6,7 @@ import glob
 import sys
 import os
 
-from .move_dialog import MoveDialog
-from .valve_dialog import ValveDialog
+from .dialog import Dialog
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -17,9 +16,12 @@ class MainWindow(QtWidgets.QMainWindow):
     ACTIVE_STYLE_STRING = "background-color: mediumspringgreen; \
                            border-radius: 15px; \
                            border: 1px solid #333;"
-    COM_DICT = {'Move': 'A{}',
+    CMD_DICT = {'Move': 'A{}',
                 'ValveOutput': 'O',
-                'ValveInput': 'I'}
+                'ValveInput': 'I',
+                'Speed': 'S{}',
+                'Acceleration': 'L{}',
+                'Delay': 'M{}'}
 
     def __init__(self):
         QtWidgets.QMainWindow.__init__(self)
@@ -42,23 +44,26 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui.execute_command.clicked.connect(self.execute_commands)
 
     def add_move(self):
-        self.dialog = MoveDialog()
-        self.dialog.show()
-        if self.dialog.exec_():
-            pos = self.dialog.move_position.text()
+        self.move_dialog = Dialog('/ui_files/add_move_dialog.ui')
+        self.move_dialog.show()
+        if self.move_dialog.exec_():
+            pos = self.move_dialog.move_position.text()
             self.ui.command_list_widget.addItem('Move:{}'.format(pos))
 
     def add_delay(self):
-        self.ui.command_list_widget.addItem('Delay')
+        self.delay_dialog = Dialog('/ui_files/add_delay_dialog.ui')
+        self.delay_dialog.show()
+        if self.delay_dialog.exec_():
+            delay = self.delay_dialog.delay.text()
+            self.ui.command_list_widget.addItem('Delay:{}'.format(delay))
 
     def add_valve(self):
-        self.dialog = ValveDialog()
-        self.dialog.show()
-        if self.dialog.exec_():
-            pos = self.dialog.move_position.text()
-            if pos == '0':
+        self.valve_dialog = Dialog('/ui_files/add_valve_dialog.ui')
+        self.valve_dialog.show()
+        if self.valve_dialog.exec_():
+            if self.valve_dialog.output_position.isChecked():
                 self.ui.command_list_widget.addItem('ValveOutput:0')
-            else:
+            elif self.valve_dialog.input_position.isChecked():
                 self.ui.command_list_widget.addItem('ValveInput:1')
 
     def add_speed(self):
@@ -71,12 +76,12 @@ class MainWindow(QtWidgets.QMainWindow):
         command = '/1'
         for i in range(self.ui.command_list_widget.count()):
             com, val = self.ui.command_list_widget.item(i).text().split(':')
-            command = self.COM_DICT[com].format(val) + self.CR
-            print(command)
-            if (self.psd4_serial.isOpen()):
-                self.psd4_serial.write(command.encode())
-                time.sleep(1.5)
-
+            command += self.CMD_DICT[com].format(val)
+        command += 'R' + self.CR  # add the carriage return
+        if (self.psd4_serial.isOpen()):
+            self.psd4_serial.write(command.encode())
+            time.sleep(1.0)
+            print(self.response())
 
     def check_port(self, value):
         if "/dev/cu.usbserial" in value:
@@ -96,7 +101,7 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             raise EnvironmentError('Unsupported platform')
         self.ui.ports.clear()
-        self.ui.ports.addItems(ports)
+        self.ui.ports.addItems(ports[::-1])
 
     def connect_to_port(self, value):
         self.psd4_serial = serial.Serial(value, 9600, timeout=1)

@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Dialog</string>
+   <string>Add Delay Command</string>
   </property>
   <widget class="QDialogButtonBox" name="buttonBox">
    <property name="geometry">
@@ -44,13 +44,13 @@
     </font>
    </property>
    <property name="text">
-    <string>Add Move Command</string>
+    <string>Add Delay Command</string>
    </property>
    <property name="alignment">
     <set>Qt::AlignCenter</set>
    </property>
   </widget>
-  <widget class="QLineEdit" name="move_position">
+  <widget class="QLineEdit" name="delay">
    <property name="enabled">
     <bool>true</bool>
    </property>
@@ -72,8 +72,8 @@
   <widget class="QLabel" name="label_8">
    <property name="geometry">
     <rect>
-     <x>10</x>
-     <y>60</y>
+     <x>4</x>
+     <y>63</y>
      <width>171</width>
      <height>21</height>
     </rect>
@@ -84,7 +84,7 @@
     </font>
    </property>
    <property name="text">
-    <string>Enter Position 0 - 6000</string>
+    <string>Enter Delay (ms)</string>
    </property>
    <property name="alignment">
     <set>Qt::AlignCenter</set>
