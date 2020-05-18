@@ -23,7 +23,7 @@
    </size>
   </property>
   <property name="windowTitle">
-   <string>MainWindow</string>
+   <string>PAX Hamilton PSD4 Pump Controller</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <widget class="QLabel" name="paxlogo">
@@ -60,7 +60,7 @@
      </font>
     </property>
     <property name="title">
-     <string>Step 1: Connect to and initialize the PSD4.</string>
+     <string>Connect to and initialize the PSD4.</string>
     </property>
     <widget class="QPushButton" name="search">
      <property name="geometry">
@@ -211,7 +211,7 @@ border-radius: 4px;</string>
      </font>
     </property>
     <property name="title">
-     <string>Step 2: Speed and Acceleration Settings</string>
+     <string>Global Speed and Acceleration Settings</string>
     </property>
     <widget class="QPushButton" name="set_speed">
      <property name="enabled">
@@ -339,8 +339,8 @@ border-radius: 4px;</string>
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>370</y>
-      <width>401</width>
+      <y>440</y>
+      <width>411</width>
       <height>151</height>
      </rect>
     </property>
@@ -358,7 +358,7 @@ border-radius: 4px;</string>
      </property>
      <property name="geometry">
       <rect>
-       <x>110</x>
+       <x>120</x>
        <y>106</y>
        <width>181</width>
        <height>32</height>
@@ -380,7 +380,7 @@ border-radius: 4px;</string>
      </property>
      <property name="geometry">
       <rect>
-       <x>20</x>
+       <x>26</x>
        <y>65</y>
        <width>361</width>
        <height>31</height>
@@ -418,7 +418,7 @@ border-radius: 4px;</string>
      </property>
      <property name="geometry">
       <rect>
-       <x>272</x>
+       <x>280</x>
        <y>34</y>
        <width>101</width>
        <height>28</height>
@@ -445,60 +445,6 @@ border-radius: 4px;</string>
      <enum>Qt::Horizontal</enum>
     </property>
    </widget>
-   <widget class="QPushButton" name="initialized">
-    <property name="geometry">
-     <rect>
-      <x>20</x>
-      <y>327</y>
-      <width>113</width>
-      <height>32</height>
-     </rect>
-    </property>
-    <property name="styleSheet">
-     <string notr="true">background-color: tomato;
-border-radius: 15px;
-border: 1px solid #333;</string>
-    </property>
-    <property name="text">
-     <string>Pump Offline</string>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="speed_set">
-    <property name="geometry">
-     <rect>
-      <x>140</x>
-      <y>327</y>
-      <width>141</width>
-      <height>32</height>
-     </rect>
-    </property>
-    <property name="styleSheet">
-     <string notr="true">background-color: #ccc;
-border-radius: 15px;
-border: 1px solid #333;</string>
-    </property>
-    <property name="text">
-     <string>Speed Not Set</string>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="accel_set">
-    <property name="geometry">
-     <rect>
-      <x>288</x>
-      <y>327</y>
-      <width>139</width>
-      <height>32</height>
-     </rect>
-    </property>
-    <property name="styleSheet">
-     <string notr="true">background-color: #ccc;
-border-radius: 15px;
-border: 1px solid #333;</string>
-    </property>
-    <property name="text">
-     <string>Accel Not Set</string>
-    </property>
-   </widget>
    <widget class="Line" name="line_3">
     <property name="geometry">
      <rect>
@@ -519,7 +465,7 @@ border: 1px solid #333;</string>
     <property name="geometry">
      <rect>
       <x>470</x>
-      <y>370</y>
+      <y>360</y>
       <width>71</width>
       <height>32</height>
      </rect>
@@ -533,6 +479,10 @@ border-radius: 4px;</string>
     <property name="text">
      <string>Move</string>
     </property>
+    <property name="icon">
+     <iconset>
+      <normaloff>images/move-icon.png</normaloff>images/move-icon.png</iconset>
+    </property>
    </widget>
    <widget class="QPushButton" name="add_valve">
     <property name="enabled">
@@ -541,7 +491,7 @@ border-radius: 4px;</string>
     <property name="geometry">
      <rect>
       <x>710</x>
-      <y>370</y>
+      <y>360</y>
       <width>71</width>
       <height>32</height>
      </rect>
@@ -555,6 +505,16 @@ border-radius: 4px;</string>
     <property name="text">
      <string>Valve</string>
     </property>
+    <property name="icon">
+     <iconset>
+      <normaloff>images/valve-icon.png</normaloff>images/valve-icon.png</iconset>
+    </property>
+    <property name="iconSize">
+     <size>
+      <width>18</width>
+      <height>16</height>
+     </size>
+    </property>
    </widget>
    <widget class="QPushButton" name="add_speed">
     <property name="enabled">
@@ -563,7 +523,7 @@ border-radius: 4px;</string>
     <property name="geometry">
      <rect>
       <x>550</x>
-      <y>370</y>
+      <y>360</y>
       <width>71</width>
       <height>32</height>
      </rect>
@@ -577,19 +537,29 @@ border-radius: 4px;</string>
     <property name="text">
      <string>Speed</string>
     </property>
+    <property name="icon">
+     <iconset>
+      <normaloff>images/speed-icon.png</normaloff>images/speed-icon.png</iconset>
+    </property>
+    <property name="iconSize">
+     <size>
+      <width>18</width>
+      <height>16</height>
+     </size>
+    </property>
    </widget>
    <widget class="QLabel" name="label_7">
     <property name="geometry">
      <rect>
-      <x>470</x>
+      <x>580</x>
       <y>330</y>
-      <width>391</width>
+      <width>171</width>
       <height>21</height>
      </rect>
     </property>
     <property name="font">
      <font>
-      <pointsize>15</pointsize>
+      <pointsize>16</pointsize>
      </font>
     </property>
     <property name="text">
@@ -606,7 +576,7 @@ border-radius: 4px;</string>
     <property name="geometry">
      <rect>
       <x>630</x>
-      <y>370</y>
+      <y>360</y>
       <width>71</width>
       <height>32</height>
      </rect>
@@ -620,6 +590,10 @@ border-radius: 4px;</string>
     <property name="text">
      <string>Accel</string>
     </property>
+    <property name="icon">
+     <iconset>
+      <normaloff>images/execute-icon.png</normaloff>images/execute-icon.png</iconset>
+    </property>
    </widget>
    <widget class="QPushButton" name="add_delay">
     <property name="enabled">
@@ -628,7 +602,7 @@ border-radius: 4px;</string>
     <property name="geometry">
      <rect>
       <x>790</x>
-      <y>370</y>
+      <y>360</y>
       <width>71</width>
       <height>32</height>
      </rect>
@@ -642,6 +616,10 @@ border-radius: 4px;</string>
     <property name="text">
      <string>Delay</string>
     </property>
+    <property name="icon">
+     <iconset>
+      <normaloff>images/delay-icon.png</normaloff>images/delay-icon.png</iconset>
+    </property>
    </widget>
    <widget class="QPushButton" name="execute_command">
     <property name="enabled">
@@ -649,9 +627,9 @@ border-radius: 4px;</string>
     </property>
     <property name="geometry">
      <rect>
-      <x>740</x>
-      <y>570</y>
-      <width>121</width>
+      <x>730</x>
+      <y>560</y>
+      <width>131</width>
       <height>32</height>
      </rect>
     </property>
@@ -662,17 +640,30 @@ border: 1px solid #333;
 border-radius: 4px;</string>
     </property>
     <property name="text">
-     <string>Execute</string>
+     <string> EXECUTE</string>
+    </property>
+    <property name="icon">
+     <iconset>
+      <normaloff>images/execute-icon_2.png</normaloff>images/execute-icon_2.png</iconset>
+    </property>
+    <property name="iconSize">
+     <size>
+      <width>40</width>
+      <height>20</height>
+     </size>
     </property>
    </widget>
-   <widget class="QListWidget" name="command_list_widget">
+   <widget class="QListWidget" name="command_list">
     <property name="geometry">
      <rect>
       <x>470</x>
-      <y>410</y>
+      <y>400</y>
       <width>311</width>
       <height>151</height>
      </rect>
+    </property>
+    <property name="alternatingRowColors">
+     <bool>true</bool>
     </property>
    </widget>
    <widget class="QPushButton" name="remove_command">
@@ -682,8 +673,8 @@ border-radius: 4px;</string>
     <property name="geometry">
      <rect>
       <x>470</x>
-      <y>570</y>
-      <width>131</width>
+      <y>560</y>
+      <width>151</width>
       <height>32</height>
      </rect>
     </property>
@@ -696,6 +687,10 @@ border-radius: 4px;</string>
     <property name="text">
      <string>Remove Selected</string>
     </property>
+    <property name="icon">
+     <iconset>
+      <normaloff>images/remove-icon.png</normaloff>images/remove-icon.png</iconset>
+    </property>
    </widget>
    <widget class="QPushButton" name="move_selected_up">
     <property name="enabled">
@@ -704,7 +699,7 @@ border-radius: 4px;</string>
     <property name="geometry">
      <rect>
       <x>790</x>
-      <y>410</y>
+      <y>400</y>
       <width>71</width>
       <height>71</height>
      </rect>
@@ -731,7 +726,7 @@ border-radius: 4px;</string>
     <property name="geometry">
      <rect>
       <x>790</x>
-      <y>490</y>
+      <y>480</y>
       <width>71</width>
       <height>71</height>
      </rect>
@@ -751,6 +746,142 @@ border-radius: 4px;</string>
      <string>↓</string>
     </property>
    </widget>
+   <widget class="QGroupBox" name="groupBox_4">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>330</y>
+      <width>411</width>
+      <height>101</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>15</pointsize>
+     </font>
+    </property>
+    <property name="title">
+     <string>Pump Status</string>
+    </property>
+    <widget class="QPushButton" name="initialized">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>43</y>
+       <width>113</width>
+       <height>32</height>
+      </rect>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">background-color: tomato;
+border-radius: 15px;
+border: 1px solid #333;</string>
+     </property>
+     <property name="text">
+      <string>Pump Offline</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="speed_set">
+     <property name="geometry">
+      <rect>
+       <x>130</x>
+       <y>43</y>
+       <width>131</width>
+       <height>32</height>
+      </rect>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">background-color: #ccc;
+border-radius: 15px;
+border: 1px solid #333;</string>
+     </property>
+     <property name="text">
+      <string>Speed Not Set</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="accel_set">
+     <property name="geometry">
+      <rect>
+       <x>270</x>
+       <y>43</y>
+       <width>131</width>
+       <height>32</height>
+      </rect>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">background-color: #ccc;
+border-radius: 15px;
+border: 1px solid #333;</string>
+     </property>
+     <property name="text">
+      <string>Accel Not Set</string>
+     </property>
+    </widget>
+   </widget>
+   <widget class="QPushButton" name="save_to_file">
+    <property name="enabled">
+     <bool>true</bool>
+    </property>
+    <property name="geometry">
+     <rect>
+      <x>630</x>
+      <y>560</y>
+      <width>41</width>
+      <height>32</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">height: 60px;
+background-color: #fff;
+border: 1px solid #333; 
+border-radius: 4px;</string>
+    </property>
+    <property name="text">
+     <string/>
+    </property>
+    <property name="icon">
+     <iconset>
+      <normaloff>images/save-icon.png</normaloff>images/save-icon.png</iconset>
+    </property>
+    <property name="iconSize">
+     <size>
+      <width>19</width>
+      <height>20</height>
+     </size>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="load_file">
+    <property name="enabled">
+     <bool>true</bool>
+    </property>
+    <property name="geometry">
+     <rect>
+      <x>680</x>
+      <y>560</y>
+      <width>41</width>
+      <height>32</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">height: 60px;
+background-color: #fff;
+border: 1px solid #333; 
+border-radius: 4px;</string>
+    </property>
+    <property name="text">
+     <string/>
+    </property>
+    <property name="icon">
+     <iconset>
+      <normaloff>images/load-file.png</normaloff>images/load-file.png</iconset>
+    </property>
+    <property name="iconSize">
+     <size>
+      <width>20</width>
+      <height>20</height>
+     </size>
+    </property>
+   </widget>
    <zorder>groupBox</zorder>
    <zorder>paxlogo</zorder>
    <zorder>label_3</zorder>
@@ -759,9 +890,6 @@ border-radius: 4px;</string>
    <zorder>line</zorder>
    <zorder>groupBox_3</zorder>
    <zorder>line_2</zorder>
-   <zorder>initialized</zorder>
-   <zorder>speed_set</zorder>
-   <zorder>accel_set</zorder>
    <zorder>line_3</zorder>
    <zorder>add_move</zorder>
    <zorder>add_valve</zorder>
@@ -770,10 +898,13 @@ border-radius: 4px;</string>
    <zorder>add_accel</zorder>
    <zorder>add_delay</zorder>
    <zorder>execute_command</zorder>
-   <zorder>command_list_widget</zorder>
+   <zorder>command_list</zorder>
    <zorder>remove_command</zorder>
    <zorder>move_selected_up</zorder>
    <zorder>move_selected_down</zorder>
+   <zorder>groupBox_4</zorder>
+   <zorder>save_to_file</zorder>
+   <zorder>load_file</zorder>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
