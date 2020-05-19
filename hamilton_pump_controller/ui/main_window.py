@@ -35,10 +35,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui.initialize.clicked.connect(self.init_pump)
         self.ui.search.clicked.connect(self.search_for_ports)
         self.ui.ports.currentTextChanged.connect(self.check_port)
-        self.ui.move_pump.clicked.connect(self.move_to_position)
         self.ui.set_speed.clicked.connect(self.set_pump_speed)
         self.ui.set_accel.clicked.connect(self.set_pump_accel)
+
+        # Manual Pump control
         self.ui.position_slider.valueChanged.connect(self.change_position)
+        self.ui.move_pump.clicked.connect(self.move_to_position)
+        self.ui.open_close_valve.clicked.connect(self.open_close_valve)
 
         # Command Builer Functions
         self.ui.add_move.clicked.connect(self.add_move)
@@ -66,6 +69,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.delay_dialog.exec_():
             delay = self.delay_dialog.delay.text()
             self.ui.command_list.addItem('Delay:{}'.format(delay))
+        self.command_list_changed()
 
     def add_valve(self):
         self.valve_dialog = Dialog('/ui_files/add_valve_dialog.ui')
@@ -75,6 +79,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.ui.command_list.addItem('ValveOutput:0')
             elif self.valve_dialog.input_position.isChecked():
                 self.ui.command_list.addItem('ValveInput:1')
+        self.command_list_changed()
 
     def add_speed(self):
         self.speed_dialog = SelectDialog('/ui_files/add_speed_dialog.ui',
@@ -83,6 +88,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.speed_dialog.exec_():
             speed = self.speed_dialog.setting.currentText().split(":")[0]
             self.ui.command_list.addItem('Speed:{}'.format(speed))
+        self.command_list_changed()
 
     def add_accel(self):
         self.accel_dialog = SelectDialog('/ui_files/add_accel_dialog.ui',
@@ -91,6 +97,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.accel_dialog.exec_():
             accel = self.accel_dialog.setting.currentText().split(":")[0]
             self.ui.command_list.addItem('Acceleration:{}'.format(accel))
+        self.command_list_changed()
 
     def move_up(self):
         current_index = self.ui.command_list.currentRow()
@@ -110,6 +117,7 @@ class MainWindow(QtWidgets.QMainWindow):
             rows = sorted([index.row() for index in selected], reverse=True)
             for row in rows:
                 self.ui.command_list.takeItem(row)
+        self.command_list_changed()
 
     def execute_commands(self):
         command = '/1'
@@ -122,6 +130,17 @@ class MainWindow(QtWidgets.QMainWindow):
             time.sleep(1.0)
             print(self.response())
 
+    def open_close_valve(self):
+        if self.ui.valve_indicator.text() == "O":
+            command = '/1IR' + self.CR
+            self.ui.valve_indicator.setText('I')
+        else:
+            command = '/1OR' + self.CR
+            self.ui.valve_indicator.setText('O')
+        if (self.psd4_serial.isOpen()):
+            self.psd4_serial.write(command.encode())
+            print(self.response())
+
     def check_port(self, value):
         if "/dev/cu.usbserial" in value:
             self.connect_to_port(value)
@@ -132,6 +151,7 @@ class MainWindow(QtWidgets.QMainWindow):
         commands = pickle.load(open(inp, "rb"))
         for command in commands:
             self.ui.command_list.addItem(command)
+        self.command_list_changed()
 
     def save_to_file(self):
         commands = []
@@ -205,6 +225,12 @@ class MainWindow(QtWidgets.QMainWindow):
         response = self.psd4_serial.read(2)
         return response
 
+    def command_list_changed(self):
+        if self.ui.command_list.count() > 0:
+            self.ui.save_to_file.setEnabled(True)
+        else:
+            self.ui.save_to_file.setEnabled(False)
+
     def set_pump_accel(self):
         accel = self.ui.accel.currentText().split(":")[0]
         if (self.psd4_serial.isOpen()):
@@ -215,12 +241,17 @@ class MainWindow(QtWidgets.QMainWindow):
             print(self.response())
         self.ui.position.setEnabled(True)
         self.ui.position_slider.setEnabled(True)
+        self.ui.open_close_valve.setEnabled(True)
         self.ui.move_pump.setEnabled(True)
         self.ui.add_move.setEnabled(True)
         self.ui.add_speed.setEnabled(True)
         self.ui.add_delay.setEnabled(True)
         self.ui.add_valve.setEnabled(True)
         self.ui.add_accel.setEnabled(True)
+        self.ui.load_file.setEnabled(True)
+        self.ui.move_selected_down.setEnabled(True)
+        self.ui.move_selected_up.setEnabled(True)
+        self.ui.remove_command.setEnabled(True)
         self.ui.execute_command.setEnabled(True)
 
     def set_pump_speed(self):
