@@ -1,4 +1,5 @@
 from PyQt5 import QtWidgets, uic
+from functools import reduce
 import datetime
 import pickle
 import serial
@@ -15,22 +16,28 @@ from .select_dialog import SelectDialog
 class MainWindow(QtWidgets.QMainWindow):
 
     CR = chr(13)  # carriage return
-    IMAGE_SIZE = (285, 165)
+    STX = "\x02"  # Start of Text
+    ETX = "\x03"  # End of Text
+    ADDRESS = 1
     ACTIVE_STYLE_STRING = "background-color: mediumspringgreen; \
                            border-radius: 15px; \
                            border: 1px solid #333;"
-    CMD_DICT = {'Move': 'A{}',
+    CMD_DICT = {'Init': 'ZR',
+                'Move': 'A{}',
                 'ValveOutput': 'O',
                 'ValveInput': 'I',
                 'Speed': 'S{}',
                 'Acceleration': 'L{}',
-                'Delay': 'M{}'}
+                'Delay': 'M{}',
+                'Query': 'Q'}
 
     def __init__(self):
         QtWidgets.QMainWindow.__init__(self)
         self.ui = uic.loadUi(os.path.dirname(
             os.path.abspath(__file__)) + '/ui_files/mainWindow.ui')
         self.ui.show()
+
+        self.sequence = 1  # Used for Standard Protocol coms
 
         self.ui.initialize.clicked.connect(self.init_pump)
         self.ui.search.clicked.connect(self.search_for_ports)
@@ -184,15 +191,11 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def init_pump(self):
         if (self.psd4_serial.isOpen()):
-            command = "/1ZR" + self.CR
+            command = "".join([self.STX, str(self.ADDRESS), str(self.sequence),
+                               self.CMD_DICT['Init'], self.ETX])
+            command = self.add_checksum(command)
             self.psd4_serial.write(command.encode())
-            while True:
-                resp = self.response()
-                if resp != b'':
-                    time.sleep(.25)
-                else:
-                    break
-            time.sleep(2)  # need to find better solution here.
+            print(self.response())
             print("Pump is Initialized")
             self.ui.initialized.setStyleSheet(self.ACTIVE_STYLE_STRING)
             self.ui.initialized.setText("Pump Online")
@@ -211,6 +214,16 @@ class MainWindow(QtWidgets.QMainWindow):
             accels.append('{}: {} steps per second'.format(i + 1, j))
         return accels
 
+    def get_next_sequence_num(self):
+        if self.sequence >= 7:
+            self.sequence = 1
+        else:
+            self.sequence += 1
+
+    def add_checksum(self, command):
+        checksum = chr(reduce(lambda x, y: x ^ (ord(y)), command, 0))
+        return "".join([command, checksum])
+
     def populate_speed_and_accel(self):
         self.ui.set_speed.setEnabled(True)
         self.ui.set_accel.setEnabled(True)
@@ -222,7 +235,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui.accel.addItems(accels)
 
     def response(self):
-        response = self.psd4_serial.read(2)
+        response = self.psd4_serial.read(100)
         return response
 
     def command_list_changed(self):
