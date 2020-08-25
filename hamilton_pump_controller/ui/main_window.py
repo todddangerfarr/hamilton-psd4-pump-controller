@@ -63,6 +63,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui.load_file.clicked.connect(self.load_command_file)
         self.ui.save_to_file.clicked.connect(self.save_to_file)
 
+    def _add_checksum(self, command):
+        checksum = chr(reduce(lambda x, y: x ^ (ord(y)), command, 0))
+        return "".join([command, checksum])
+
     def _check_response(self, response):
         # This splits the byte string to a list of decimal values
         resp_bytes = list(response)
@@ -141,57 +145,6 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.ui.command_list.addItem('ValveInput:1')
         self.command_list_changed()
 
-    def send_command(self, command, retry=5):
-        if (self.psd4_serial.isOpen()):
-            # Add the other fluff around the basic command
-            serial_command = "".join([self.STX, str(self.ADDRESS),
-                                      str(self.sequence), command, self.ETX])
-            serial_command = self.add_checksum(serial_command)
-            while retry > 0:
-                self.psd4_serial.reset_input_buffer()
-                self.psd4_serial.write(serial_command.encode())
-                response = self._response()
-
-                try:
-                    print(self._check_response(response))
-                    self._update_next_sequence_num()
-                    return response
-                except ValueError:
-                    retry -= 1
-            raise Exception('No response from the device, check connections.')
-        else:
-            raise Exception("No serial port found, check connections.")
-
-    def init_pump(self):
-        self.send_command(self.CMD_DICT['Init'])
-        self._wait_if_not_ready()
-        print("Pump is Initialized")
-        self.ui.initialized.setStyleSheet(self.ACTIVE_STYLE_STRING)
-        self.ui.initialized.setText("Pump Online")
-        self.populate_speed_and_accel()
-
-
-
-    def move_up(self):
-        current_index = self.ui.command_list.currentRow()
-        item = self.ui.command_list.takeItem(current_index)
-        self.ui.command_list.insertItem(current_index - 1, item)
-        self.ui.command_list.setCurrentRow(current_index - 1)
-
-    def move_down(self):
-        current_index = self.ui.command_list.currentRow()
-        item = self.ui.command_list.takeItem(current_index)
-        self.ui.command_list.insertItem(current_index + 1, item)
-        self.ui.command_list.setCurrentRow(current_index + 1)
-
-    def remove_selected_command(self):
-        selected = self.ui.command_list.selectedIndexes()
-        if len(selected) > 0:
-            rows = sorted([index.row() for index in selected], reverse=True)
-            for row in rows:
-                self.ui.command_list.takeItem(row)
-        self.command_list_changed()
-
     def build_and_send_command(self):
         command = '/1'
         for i in range(self.ui.command_list.count()):
@@ -202,6 +155,71 @@ class MainWindow(QtWidgets.QMainWindow):
             self.psd4_serial.write(command.encode())
             time.sleep(1.0)
             print(self.response())
+
+    def change_position(self, value):
+        self.ui.position.setText(str(value))
+
+    def check_port(self, value):
+        if "/dev/cu.usbserial" in value:
+            self.connect_to_port(value)
+
+    def command_list_changed(self):
+        if self.ui.command_list.count() > 0:
+            self.ui.save_to_file.setEnabled(True)
+        else:
+            self.ui.save_to_file.setEnabled(False)
+
+    def connect_to_port(self, value):
+        self.psd4_serial = serial.Serial(value, 9600, timeout=1)
+        self.ui.initialize.setEnabled(True)
+
+    def get_available_accels(self):
+        accels = []
+        for i, j in enumerate(range(2500, 52500, 2500)):
+            accels.append('{}: {} steps per second'.format(i + 1, j))
+        return accels
+
+    def get_available_speeds(self):
+        file_path = os.getcwd() + '/hamilton_pump_controller/config/speed.json'
+        with open(file_path) as f:
+            speed = json.load(f)
+        speeds = ['{}: {}'.format(k, v) for k, v in speed.items()]
+        return speeds
+
+    def init_pump(self):
+        self.send_command(self.CMD_DICT['Init'])
+        self._wait_if_not_ready()
+        print("Pump is Initialized")
+        self.ui.initialized.setStyleSheet(self.ACTIVE_STYLE_STRING)
+        self.ui.initialized.setText("Pump Online")
+        self.populate_speed_and_accel()
+
+    def load_command_file(self):
+        file_dialog = QtWidgets.QFileDialog()
+        inp = file_dialog.getOpenFileName(filter="Pickle Files (*.p)")[0]
+        commands = pickle.load(open(inp, "rb"))
+        for command in commands:
+            self.ui.command_list.addItem(command)
+        self.command_list_changed()
+
+    def move_down(self):
+        current_index = self.ui.command_list.currentRow()
+        item = self.ui.command_list.takeItem(current_index)
+        self.ui.command_list.insertItem(current_index + 1, item)
+        self.ui.command_list.setCurrentRow(current_index + 1)
+
+    def move_to_position(self):
+        if (self.psd4_serial.isOpen()):
+            position = self.ui.position.text().strip()
+            command = "/1A{}R".format(position) + self.CR
+            self.psd4_serial.write(command.encode())
+            print(self.response())
+
+    def move_up(self):
+        current_index = self.ui.command_list.currentRow()
+        item = self.ui.command_list.takeItem(current_index)
+        self.ui.command_list.insertItem(current_index - 1, item)
+        self.ui.command_list.setCurrentRow(current_index - 1)
 
     def open_close_valve(self):
         if self.ui.valve_indicator.text() == "O":
@@ -214,51 +232,6 @@ class MainWindow(QtWidgets.QMainWindow):
             self.psd4_serial.write(command.encode())
             print(self.response())
 
-    def check_port(self, value):
-        if "/dev/cu.usbserial" in value:
-            self.connect_to_port(value)
-
-    def load_command_file(self):
-        file_dialog = QtWidgets.QFileDialog()
-        inp = file_dialog.getOpenFileName(filter="Pickle Files (*.p)")[0]
-        commands = pickle.load(open(inp, "rb"))
-        for command in commands:
-            self.ui.command_list.addItem(command)
-        self.command_list_changed()
-
-    def save_to_file(self):
-        commands = []
-        for i in range(self.ui.command_list.count()):
-            commands.append(self.ui.command_list.item(i).text())
-        filename = (os.getcwd() + '/'
-                    + datetime.datetime.now().strftime('%Y%M%d-%H%M%S')
-                    + '.p')
-        pickle.dump(commands, open(filename, "wb"))
-
-    def change_position(self, value):
-        self.ui.position.setText(str(value))
-
-    def connect_to_port(self, value):
-        self.psd4_serial = serial.Serial(value, 9600, timeout=1)
-        self.ui.initialize.setEnabled(True)
-
-    def get_available_speeds(self):
-        file_path = os.getcwd() + '/hamilton_pump_controller/config/speed.json'
-        with open(file_path) as f:
-            speed = json.load(f)
-        speeds = ['{}: {}'.format(k, v) for k, v in speed.items()]
-        return speeds
-
-    def get_available_accels(self):
-        accels = []
-        for i, j in enumerate(range(2500, 52500, 2500)):
-            accels.append('{}: {} steps per second'.format(i + 1, j))
-        return accels
-
-    def add_checksum(self, command):
-        checksum = chr(reduce(lambda x, y: x ^ (ord(y)), command, 0))
-        return "".join([command, checksum])
-
     def populate_speed_and_accel(self):
         self.ui.set_speed.setEnabled(True)
         self.ui.set_accel.setEnabled(True)
@@ -269,11 +242,22 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui.speed.addItems(speeds)
         self.ui.accel.addItems(accels)
 
-    def command_list_changed(self):
-        if self.ui.command_list.count() > 0:
-            self.ui.save_to_file.setEnabled(True)
-        else:
-            self.ui.save_to_file.setEnabled(False)
+    def remove_selected_command(self):
+        selected = self.ui.command_list.selectedIndexes()
+        if len(selected) > 0:
+            rows = sorted([index.row() for index in selected], reverse=True)
+            for row in rows:
+                self.ui.command_list.takeItem(row)
+        self.command_list_changed()
+
+    def save_to_file(self):
+        commands = []
+        for i in range(self.ui.command_list.count()):
+            commands.append(self.ui.command_list.item(i).text())
+        filename = (os.getcwd() + '/'
+                    + datetime.datetime.now().strftime('%Y%M%d-%H%M%S')
+                    + '.p')
+        pickle.dump(commands, open(filename, "wb"))
 
     def search_for_ports(self):
         if sys.platform.startswith('win'):
@@ -288,6 +272,27 @@ class MainWindow(QtWidgets.QMainWindow):
             raise EnvironmentError('Unsupported platform')
         self.ui.ports.clear()
         self.ui.ports.addItems(ports[::-1])
+
+    def send_command(self, command, retry=5):
+        if (self.psd4_serial.isOpen()):
+            # Add the other fluff around the basic command
+            serial_command = "".join([self.STX, str(self.ADDRESS),
+                                      str(self.sequence), command, self.ETX])
+            serial_command = self._add_checksum(serial_command)
+            while retry > 0:
+                self.psd4_serial.reset_input_buffer()
+                self.psd4_serial.write(serial_command.encode())
+                response = self._response()
+
+                try:
+                    print(self._check_response(response))
+                    self._update_next_sequence_num()
+                    return response
+                except ValueError:
+                    retry -= 1
+            raise Exception('No response from the device, check connections.')
+        else:
+            raise Exception("No serial port found, check connections.")
 
     def set_pump_accel(self):
         accel = self.ui.accel.currentText().split(":")[0]
@@ -319,11 +324,4 @@ class MainWindow(QtWidgets.QMainWindow):
             self.psd4_serial.write(command.encode())
             self.ui.speed_set.setStyleSheet(self.ACTIVE_STYLE_STRING)
             self.ui.speed_set.setText("Speed Set: {}".format(speed))
-            print(self.response())
-
-    def move_to_position(self):
-        if (self.psd4_serial.isOpen()):
-            position = self.ui.position.text().strip()
-            command = "/1A{}R".format(position) + self.CR
-            self.psd4_serial.write(command.encode())
             print(self.response())
