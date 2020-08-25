@@ -251,8 +251,8 @@ class MainWindow(QtWidgets.QMainWindow):
         commands = []
         for i in range(self.ui.command_list.count()):
             commands.append(self.ui.command_list.item(i).text())
-        filename = (os.getcwd() + '/'
-                    + datetime.datetime.now().strftime('%Y%M%d-%H%M%S')
+        filename = (os.getcwd() + '/recipes/'
+                    + datetime.datetime.now().strftime('%Y%m%d-%H%M%S')
                     + '.p')
         pickle.dump(commands, open(filename, "wb"))
 
