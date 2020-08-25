@@ -59,9 +59,61 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui.move_selected_up.clicked.connect(self.move_up)
         self.ui.move_selected_down.clicked.connect(self.move_down)
         self.ui.remove_command.clicked.connect(self.remove_selected_command)
-        self.ui.execute_command.clicked.connect(self.execute_commands)
+        self.ui.execute_command.clicked.connect(self.build_and_send_command)
         self.ui.load_file.clicked.connect(self.load_command_file)
         self.ui.save_to_file.clicked.connect(self.save_to_file)
+
+    def _check_response(self, response):
+        # This splits the byte string to a list of decimal values
+        resp_bytes = list(response)
+
+        # Status byte #5 is 2 position in the byte string 7654321
+        status_byte = resp_bytes[2]
+
+        # Check for STX and ETX, Raise Value error if missing
+        if resp_bytes[0] != 2 or resp_bytes[-2] != 3:
+            raise ValueError("ERROR: Missing Complete Response")
+
+        # Apply bitwise masking
+        return {'ready': 0b00100000 & status_byte,
+                'error_code': 0x0F & status_byte}
+
+    def _response(self):
+        # TODO: Write code for retries if nothing is read back
+        response = self.psd4_serial.read(100)
+        print(response)
+        return response[1:]  # Manually remove leading /0xff
+
+    def _update_next_sequence_num(self):
+        # The hamilton pump requires subsequent commands to have an
+        # incremental sequence number between 1-7 attached in the string
+        if self.sequence >= 7:
+            self.sequence = 1
+        else:
+            self.sequence += 1
+
+    def _wait_if_not_ready(self):
+        # Keeps checking pump to see if it's ready
+        while not self._check_response(
+                self.send_command(self.CMD_DICT['Query']))["ready"]:
+            time.sleep(0.1)
+
+    def add_accel(self):
+        self.accel_dialog = SelectDialog('/ui_files/add_accel_dialog.ui',
+                                         self.get_available_accels())
+        self.accel_dialog.show()
+        if self.accel_dialog.exec_():
+            accel = self.accel_dialog.setting.currentText().split(":")[0]
+            self.ui.command_list.addItem('Acceleration:{}'.format(accel))
+        self.command_list_changed()
+
+    def add_delay(self):
+        self.delay_dialog = Dialog('/ui_files/add_delay_dialog.ui')
+        self.delay_dialog.show()
+        if self.delay_dialog.exec_():
+            delay = self.delay_dialog.delay.text()
+            self.ui.command_list.addItem('Delay:{}'.format(delay))
+        self.command_list_changed()
 
     def add_move(self):
         self.move_dialog = Dialog('/ui_files/add_move_dialog.ui')
@@ -70,12 +122,13 @@ class MainWindow(QtWidgets.QMainWindow):
             pos = self.move_dialog.move_position.text()
             self.ui.command_list.addItem('Move:{}'.format(pos))
 
-    def add_delay(self):
-        self.delay_dialog = Dialog('/ui_files/add_delay_dialog.ui')
-        self.delay_dialog.show()
-        if self.delay_dialog.exec_():
-            delay = self.delay_dialog.delay.text()
-            self.ui.command_list.addItem('Delay:{}'.format(delay))
+    def add_speed(self):
+        self.speed_dialog = SelectDialog('/ui_files/add_speed_dialog.ui',
+                                         self.get_available_speeds())
+        self.speed_dialog.show()
+        if self.speed_dialog.exec_():
+            speed = self.speed_dialog.setting.currentText().split(":")[0]
+            self.ui.command_list.addItem('Speed:{}'.format(speed))
         self.command_list_changed()
 
     def add_valve(self):
@@ -88,23 +141,36 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.ui.command_list.addItem('ValveInput:1')
         self.command_list_changed()
 
-    def add_speed(self):
-        self.speed_dialog = SelectDialog('/ui_files/add_speed_dialog.ui',
-                                         self.get_available_speeds())
-        self.speed_dialog.show()
-        if self.speed_dialog.exec_():
-            speed = self.speed_dialog.setting.currentText().split(":")[0]
-            self.ui.command_list.addItem('Speed:{}'.format(speed))
-        self.command_list_changed()
+    def send_command(self, command, retry=5):
+        if (self.psd4_serial.isOpen()):
+            # Add the other fluff around the basic command
+            serial_command = "".join([self.STX, str(self.ADDRESS),
+                                      str(self.sequence), command, self.ETX])
+            serial_command = self.add_checksum(serial_command)
+            while retry > 0:
+                self.psd4_serial.reset_input_buffer()
+                self.psd4_serial.write(serial_command.encode())
+                response = self._response()
 
-    def add_accel(self):
-        self.accel_dialog = SelectDialog('/ui_files/add_accel_dialog.ui',
-                                         self.get_available_accels())
-        self.accel_dialog.show()
-        if self.accel_dialog.exec_():
-            accel = self.accel_dialog.setting.currentText().split(":")[0]
-            self.ui.command_list.addItem('Acceleration:{}'.format(accel))
-        self.command_list_changed()
+                try:
+                    print(self._check_response(response))
+                    self._update_next_sequence_num()
+                    return response
+                except ValueError:
+                    retry -= 1
+            raise Exception('No response from the device, check connections.')
+        else:
+            raise Exception("No serial port found, check connections.")
+
+    def init_pump(self):
+        self.send_command(self.CMD_DICT['Init'])
+        self._wait_if_not_ready()
+        print("Pump is Initialized")
+        self.ui.initialized.setStyleSheet(self.ACTIVE_STYLE_STRING)
+        self.ui.initialized.setText("Pump Online")
+        self.populate_speed_and_accel()
+
+
 
     def move_up(self):
         current_index = self.ui.command_list.currentRow()
@@ -126,7 +192,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.ui.command_list.takeItem(row)
         self.command_list_changed()
 
-    def execute_commands(self):
+    def build_and_send_command(self):
         command = '/1'
         for i in range(self.ui.command_list.count()):
             com, val = self.ui.command_list.item(i).text().split(':')
@@ -172,34 +238,9 @@ class MainWindow(QtWidgets.QMainWindow):
     def change_position(self, value):
         self.ui.position.setText(str(value))
 
-    def search_for_ports(self):
-        if sys.platform.startswith('win'):
-            ports = ['COM%s' % (i + 1) for i in range(256)]
-        elif sys.platform.startswith('linux') or sys.platform.startswith('cygwin'):
-            # this excludes your current terminal "/dev/tty"
-            ports = glob.glob('/dev/tty[A-Za-z]*')
-        elif sys.platform.startswith('darwin'):
-            ports = glob.glob('/dev/cu.*')
-        else:
-            raise EnvironmentError('Unsupported platform')
-        self.ui.ports.clear()
-        self.ui.ports.addItems(ports[::-1])
-
     def connect_to_port(self, value):
         self.psd4_serial = serial.Serial(value, 9600, timeout=1)
         self.ui.initialize.setEnabled(True)
-
-    def init_pump(self):
-        if (self.psd4_serial.isOpen()):
-            command = "".join([self.STX, str(self.ADDRESS), str(self.sequence),
-                               self.CMD_DICT['Init'], self.ETX])
-            command = self.add_checksum(command)
-            self.psd4_serial.write(command.encode())
-            print(self.response())
-            print("Pump is Initialized")
-            self.ui.initialized.setStyleSheet(self.ACTIVE_STYLE_STRING)
-            self.ui.initialized.setText("Pump Online")
-            self.populate_speed_and_accel()
 
     def get_available_speeds(self):
         file_path = os.getcwd() + '/hamilton_pump_controller/config/speed.json'
@@ -213,12 +254,6 @@ class MainWindow(QtWidgets.QMainWindow):
         for i, j in enumerate(range(2500, 52500, 2500)):
             accels.append('{}: {} steps per second'.format(i + 1, j))
         return accels
-
-    def get_next_sequence_num(self):
-        if self.sequence >= 7:
-            self.sequence = 1
-        else:
-            self.sequence += 1
 
     def add_checksum(self, command):
         checksum = chr(reduce(lambda x, y: x ^ (ord(y)), command, 0))
@@ -234,15 +269,25 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui.speed.addItems(speeds)
         self.ui.accel.addItems(accels)
 
-    def response(self):
-        response = self.psd4_serial.read(100)
-        return response
-
     def command_list_changed(self):
         if self.ui.command_list.count() > 0:
             self.ui.save_to_file.setEnabled(True)
         else:
             self.ui.save_to_file.setEnabled(False)
+
+    def search_for_ports(self):
+        if sys.platform.startswith('win'):
+            ports = ['COM%s' % (i + 1) for i in range(256)]
+        elif (sys.platform.startswith('linux')
+              or sys.platform.startswith('cygwin')):
+            # this excludes your current terminal "/dev/tty"
+            ports = glob.glob('/dev/tty[A-Za-z]*')
+        elif sys.platform.startswith('darwin'):
+            ports = glob.glob('/dev/cu.*')
+        else:
+            raise EnvironmentError('Unsupported platform')
+        self.ui.ports.clear()
+        self.ui.ports.addItems(ports[::-1])
 
     def set_pump_accel(self):
         accel = self.ui.accel.currentText().split(":")[0]
