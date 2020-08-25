@@ -19,10 +19,11 @@ class MainWindow(QtWidgets.QMainWindow):
     STX = "\x02"  # Start of Text
     ETX = "\x03"  # End of Text
     ADDRESS = 1
+    EXECUTE = 'R'
     ACTIVE_STYLE_STRING = "background-color: mediumspringgreen; \
                            border-radius: 15px; \
                            border: 1px solid #333;"
-    CMD_DICT = {'Init': 'ZR',
+    CMD_DICT = {'Init': 'Z',
                 'Move': 'A{}',
                 'ValveOutput': 'O',
                 'ValveInput': 'I',
@@ -146,15 +147,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.command_list_changed()
 
     def build_and_send_command(self):
-        command = '/1'
+        command = ''
         for i in range(self.ui.command_list.count()):
             com, val = self.ui.command_list.item(i).text().split(':')
             command += self.CMD_DICT[com].format(val)
-        command += 'R' + self.CR  # add the carriage return
-        if (self.psd4_serial.isOpen()):
-            self.psd4_serial.write(command.encode())
-            time.sleep(1.0)
-            print(self.response())
+        self.send_command(command)
+        self._wait_if_not_ready()
 
     def change_position(self, value):
         self.ui.position.setText(str(value))
@@ -209,11 +207,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui.command_list.setCurrentRow(current_index + 1)
 
     def move_to_position(self):
-        if (self.psd4_serial.isOpen()):
-            position = self.ui.position.text().strip()
-            command = "/1A{}R".format(position) + self.CR
-            self.psd4_serial.write(command.encode())
-            print(self.response())
+        position = self.ui.position.text().strip()
+        command = self.CMD_DICT['Move'].format(position)
+        self.send_command(command)
+        self._wait_if_not_ready()
 
     def move_up(self):
         current_index = self.ui.command_list.currentRow()
@@ -223,14 +220,14 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def open_close_valve(self):
         if self.ui.valve_indicator.text() == "O":
-            command = '/1IR' + self.CR
+            command = 'ValveInput'
             self.ui.valve_indicator.setText('I')
         else:
-            command = '/1OR' + self.CR
+            command = 'ValveOutput'
             self.ui.valve_indicator.setText('O')
-        if (self.psd4_serial.isOpen()):
-            self.psd4_serial.write(command.encode())
-            print(self.response())
+        self.send_command(self.CMD_DICT[command])
+        self._wait_if_not_ready()
+        print('Valve Position Changed')
 
     def populate_speed_and_accel(self):
         self.ui.set_speed.setEnabled(True)
@@ -277,8 +274,10 @@ class MainWindow(QtWidgets.QMainWindow):
         if (self.psd4_serial.isOpen()):
             # Add the other fluff around the basic command
             serial_command = "".join([self.STX, str(self.ADDRESS),
-                                      str(self.sequence), command, self.ETX])
+                                      str(self.sequence), command,
+                                      self.EXECUTE, self.ETX])
             serial_command = self._add_checksum(serial_command)
+            print(serial_command)
             while retry > 0:
                 self.psd4_serial.reset_input_buffer()
                 self.psd4_serial.write(serial_command.encode())
@@ -296,12 +295,11 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def set_pump_accel(self):
         accel = self.ui.accel.currentText().split(":")[0]
-        if (self.psd4_serial.isOpen()):
-            command = "/1L{}R".format(accel) + self.CR
-            self.psd4_serial.write(command.encode())
-            self.ui.accel_set.setStyleSheet(self.ACTIVE_STYLE_STRING)
-            self.ui.accel_set.setText("Accel Set: {}".format(accel))
-            print(self.response())
+        command = self.CMD_DICT['Acceleration'].format(accel)
+        self.send_command(command)
+        self._wait_if_not_ready()
+        self.ui.accel_set.setStyleSheet(self.ACTIVE_STYLE_STRING)
+        self.ui.accel_set.setText("Accel Set: {}".format(accel))
         self.ui.position.setEnabled(True)
         self.ui.position_slider.setEnabled(True)
         self.ui.open_close_valve.setEnabled(True)
@@ -316,12 +314,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui.move_selected_up.setEnabled(True)
         self.ui.remove_command.setEnabled(True)
         self.ui.execute_command.setEnabled(True)
+        print('Acceleration Has been Set.')
 
     def set_pump_speed(self):
         speed = self.ui.speed.currentText().split(":")[0]
-        if (self.psd4_serial.isOpen()):
-            command = "/1S{}R".format(speed) + self.CR
-            self.psd4_serial.write(command.encode())
-            self.ui.speed_set.setStyleSheet(self.ACTIVE_STYLE_STRING)
-            self.ui.speed_set.setText("Speed Set: {}".format(speed))
-            print(self.response())
+        command = self.CMD_DICT['Speed'].format(speed) + 'R'
+        self.send_command(command)
+        self._wait_if_not_ready()
+        self.ui.speed_set.setStyleSheet(self.ACTIVE_STYLE_STRING)
+        self.ui.speed_set.setText("Speed Set: {}".format(speed))
+        print('Speed Has been Set.')
