@@ -30,7 +30,8 @@ class MainWindow(QtWidgets.QMainWindow):
                 'Speed': 'S{}',
                 'Acceleration': 'L{}',
                 'Delay': 'M{}',
-                'Query': 'Q'}
+                'Query': 'Q',
+                'Terminate': 'T'}
 
     def __init__(self):
         QtWidgets.QMainWindow.__init__(self)
